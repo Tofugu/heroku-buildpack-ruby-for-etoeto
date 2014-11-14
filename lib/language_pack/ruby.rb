@@ -10,6 +10,7 @@ require "language_pack/version"
 
 # base Ruby Language Pack. This is for any base ruby app.
 class LanguagePack::Ruby < LanguagePack::Base
+  MECAB_VENDOR_URL     = "https://s3.amazonaws.com/etoeto/buildpack/libmecab-heroku.tar.gz"
   NAME                 = "ruby"
   LIBYAML_VERSION      = "0.1.6"
   LIBYAML_PATH         = "libyaml-#{LIBYAML_VERSION}"
@@ -59,7 +60,8 @@ class LanguagePack::Ruby < LanguagePack::Base
   def default_config_vars
     instrument "ruby.default_config_vars" do
       vars = {
-        "LANG" => env("LANG") || "en_US.UTF-8"
+        "LANG"              => env("LANG") || "en_US.UTF-8",
+        "LD_LIBRARY_PATH"   => ld_path + ":/app/vendor/mecab/lib"
       }
 
       ruby_version.jruby? ? vars.merge({
@@ -90,6 +92,14 @@ class LanguagePack::Ruby < LanguagePack::Base
       setup_language_pack_environment
       setup_profiled
       allow_git do
+        install_mecab
+        run("cp -R vendor/mecab /app/vendor/mecab")
+        ENV['PATH'] += ":/app/vendor/mecab/bin"
+        ENV['CFLAGS'] = "-I/app/vendor/mecab/include"
+        ENV['CPATH'] = "/app/vendor/mecab/include"
+        ENV['CPPPATH'] = "/app/vendor/mecab/include"
+        ENV['LIBRARY_PATH'] = "/app/vendor/mecab/lib"
+        ENV['LDFLAGS'] = "-L/app/vendor/mecab/lib"
         install_bundler_in_app
         build_bundler
         post_bundler
@@ -118,7 +128,13 @@ private
     paths.unshift("#{slug_vendor_jvm}/bin") if ruby_version.jruby?
     paths.unshift(safe_binstubs)
 
-    paths.join(":")
+    paths.join(":") + ':/app/vendor/mecab/bin'
+  end
+
+  # the path to mecab library
+  # @return [String] the path
+  def ld_path
+    "/app/vendor/mecab/lib"
   end
 
   def binstubs_relative_paths
@@ -405,6 +421,16 @@ ERROR
       else
         @fetchers[:buildpack].fetch_untar("#{name}.tgz")
       end
+    end
+  end
+
+  # mecab install
+  def install_mecab
+    topic("Installing mecab")
+    bin_dir = "vendor/mecab"
+    FileUtils.mkdir_p bin_dir
+    Dir.chdir(bin_dir) do |dir|
+      run("curl #{MECAB_VENDOR_URL} -s -o - | tar xzf -")
     end
   end
 
