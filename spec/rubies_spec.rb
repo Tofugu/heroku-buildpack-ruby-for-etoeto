@@ -87,4 +87,16 @@ describe "Ruby Versions" do
       expect(app.run('ruby -v')).to match("jruby 1.7.6")
     end
   end
+
+  it "should deploy jruby 1.7.16.1 (jdk 8) on cedar-14 by default" do
+    app = Hatchet::GitApp.new("ruby_193_jruby_17161")
+
+
+    app.deploy do |app|
+      expect(app.output).to match("Installing JVM: openjdk1.8-latest")
+      expect(app.output).to match("ruby-1.9.3-jruby-1.7.16")
+      expect(app.output).not_to include("OpenJDK 64-Bit Server VM warning")
+      expect(app.run('ruby -v')).to match("jruby 1.7.16.1")
+    end
+  end
 end
