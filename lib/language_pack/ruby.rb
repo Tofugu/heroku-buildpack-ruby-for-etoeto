@@ -119,19 +119,17 @@ private
     # need to remove bin/ folder since it links
     # to the wrong --prefix ruby binstubs
     # breaking require. This only applies to Ruby 1.9.2 and 1.8.7.
-=begin
     safe_binstubs = binstubs_relative_paths - ["bin"]
     paths         = [
       ENV["PATH"],
+      "/app/vendor/mecab/bin",
       "bin",
       system_paths,
     ]
     paths.unshift("#{slug_vendor_jvm}/bin") if ruby_version.jruby?
     paths.unshift(safe_binstubs)
 
-    paths.join(":") + ':/app/vendor/mecab/bin'
-=end
-  "bin:#{bundler_binstubs_path}:/usr/local/bin:/usr/bin:/bin:/app/vendor/mecab/bin"
+    paths.join(":")
   end
 
   # the path to mecab library
